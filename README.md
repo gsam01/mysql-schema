@@ -12,9 +12,9 @@ MySQL schema export
 
 Example:
 
-http://127.0.0.1/mysql-schema/?format=html&mapping=1  
-http://127.0.0.1/mysql-schema/?format=csv&mapping=1  
-http://127.0.0.1/mysql-schema/?format=csv&mapping=0  
+http://localhost/mysql-schema/?format=html&mapping=1  
+http://localhost/mysql-schema/?format=csv&mapping=1  
+http://localhost/mysql-schema/?format=csv&mapping=0  
 
 # Setup
 
