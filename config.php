@@ -1,7 +1,6 @@
 <?php
 
 require_once __DIR__ . '/lib/util.php';
-require_once __DIR__ . '/lib/util_extra.php';
 require_once __DIR__ . '/src/autoload.php';
 
 Config::init();
