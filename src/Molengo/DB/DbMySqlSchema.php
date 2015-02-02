@@ -155,7 +155,7 @@ class DbMySqlSchema
             return $return;
         }
         $mapping = !empty($params['mapping']);
-        $exportCols = $this->getExportColumns($mapping);
+        $exportCols = $this->getCsvColumns($mapping);
         $row = array();
         foreach ($exportCols as $col) {
             $row[] = $this->escCsv($col);
@@ -166,6 +166,7 @@ class DbMySqlSchema
             $cols = $this->getTableColumns($table['table_name']);
             $contraints = $this->getTableContraints($table['table_name']);
             $return .= $this->getCsvTable($table, $cols, $contraints);
+            $return .= $nl;
         }
         return $return;
     }
@@ -274,10 +275,38 @@ class DbMySqlSchema
      * @param bool $mapping
      * @return string
      */
-    protected function getExportColumns($mapping)
+    protected function getHtmlColumns($mapping)
     {
         $return = array();
         $return['{database}'] = 'Database';
+        $return['{column}'] = 'Column';
+        $return['{column_type}'] = 'Type';
+        $return['{is_nullable}'] = 'Null';
+        $return['{column_key}'] = 'Key';
+        $return['{extra}'] = 'Extra';
+        $return['{column_default}'] = 'Default';
+        $return['{fk}'] = 'Foreign keys';
+        $return['{column_comment}'] = 'Comment';
+        if ($mapping) {
+            $return['{mapping_table}'] = 'Mapping table';
+            $return['{mapping_columns}'] = 'Mapping column';
+            $return['{mapping_type}'] = 'Mapping type';
+            $return['{mapping_comment}'] = 'Mapping comment';
+        }
+        return $return;
+    }
+
+    /**
+     *
+     * @param bool $mapping
+     * @return string
+     */
+    protected function getCsvColumns($mapping)
+    {
+        $return = array();
+        //$return['{database}'] = 'Database';
+
+        $return['{table_name}'] = 'Table';
         $return['{column}'] = 'Column';
         $return['{column_type}'] = 'Type';
         $return['{is_nullable}'] = 'Null';
@@ -315,7 +344,7 @@ class DbMySqlSchema
         }
 
         $html .= '<table style="width: 100%;"><thead><tr>';
-        $exportCols = $this->getExportcolumns($mapping);
+        $exportCols = $this->getHtmlcolumns($mapping);
         unset($exportCols['{database}']);
         foreach ($exportCols as $col) {
             $html .= '<th>' . $this->h($col) . '</th>' . "\n";
@@ -384,6 +413,7 @@ class DbMySqlSchema
 
             *{
                 font-family: Trebuchet MS, Calibri, sans-serif;
+                font-size: 12px;
             }
 
             .nowrap {
