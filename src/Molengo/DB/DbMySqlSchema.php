@@ -224,7 +224,7 @@ class DbMySqlSchema
                 $this->escCsv($col['extra']),
                 $this->escCsv($col['column_default']),
                 $this->escCsv($fks),
-                $this->escCsv($col['column_comment'])
+                $this->escCsv(encode_iso($col['column_comment']))
             );
             $csv .= implode(";", $row) . $nl;
         }
