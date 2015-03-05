@@ -171,6 +171,362 @@ class DbMySqlSchema
         return $return;
     }
 
+    public function getXsd()
+    {
+        $return = '';
+        $tables = $this->getTables();
+        if (empty($tables)) {
+            return $return;
+        }
+        #print_r($tables);
+        $arrTables = array();
+        foreach ($tables as $table) {
+
+            $strTableName = $table['table_name'];
+            //$strTableName2 = substr($strTableName, 0, strlen($strTableName) - 1);
+            $strTableName2 = \Inflector::singularize($strTableName);
+            $strTableComment = $table['table_comment'];
+            echo $strTableName . "\n";
+
+            $arrTable = array(
+                '@attributes' => array(
+                    'name' => $strTableName,
+                    'minOccurs' => '0'
+                )
+            );
+
+            if (!empty($strTableComment)) {
+                $arrTable['xs:annotation'] = array(
+                    'xs:documentation' => $strTableComment
+                );
+            }
+
+            $arrTableCols = $this->getTableColumns($table['table_name']);
+            $arrColSchema = $this->getColXsdElements($arrTableCols);
+
+            $arrTableSchema = array();
+            $arrTableSchema[] = array(
+                'xs:element' => array(
+                    '@attributes' => array(
+                        'name' => $strTableName2,
+                        'minOccurs' => '0',
+                        'maxOccurs' => 'unbounded'
+                    ),
+                    'xs:annotation' => array(
+                        'xs:documentation' => ''
+                    ),
+                    'xs:complexType' => array(
+                        'xs:sequence' => $arrColSchema
+                    )
+                )
+            );
+            $arrTable['xs:complexType'] = array(
+                'xs:sequence' => $arrTableSchema
+            );
+            $arrTables['xs:element'][] = $arrTable;
+        }
+
+        $arrXml = array(
+            '@attributes' => array(
+                'xmlns:xs' => 'http://www.w3.org/2001/XMLSchema',
+                'xmlns:vc' => 'http://www.w3.org/2007/XMLSchema-versioning',
+                'elementFormDefault' => 'qualified',
+                'attributeFormDefault' => 'unqualified',
+                'vc:minVersion' => '1.1'
+            ),
+            'xs:element' => array(
+                array(
+                    '@attributes' => array(
+                        'name' => 'root'
+                    ),
+                    'xs:annotation' => array(
+                        'xs:documentation' => 'Root element'
+                    ),
+                    'xs:complexType' => array(
+                        'xs:sequence' => $arrTables
+                    )
+                ),
+            )
+        );
+
+        $xml = new \Molengo\XmlUtil();
+        $xml = $xml->convertArrayToXml('xs:schema', $arrXml);
+        $strReturn = $xml->saveXML();
+        //file_put_contents('c:\test.xsd', $strReturn);
+
+        return $strReturn;
+    }
+
+    public function getColXsdElements($arrCols)
+    {
+        $arrReturn = array();
+
+        foreach ($arrCols as $arrCol) {
+            #print_r($arrCol);
+            $strName = $arrCol['column_name'];
+            $strNillable = ($arrCol['is_nullable'] == 'NO') ? 'false' : 'true';
+
+            $arrEl = array(
+                '@attributes' => array(
+                    'name' => $strName,
+                    'minOccurs' => '0',
+                    'nillable' => $strNillable
+                ),
+            );
+            if (!empty($arrCol['column_comment'])) {
+                $arrEl['xs:annotation'] = array(
+                    'xs:documentation' => $arrCol['column_comment']
+                );
+            }
+
+            // datatype
+            $arrEl['xs:simpleType'] = $this->getColumnXsType($arrCol);
+
+            $arrReturn['xs:element'][] = $arrEl;
+        }
+
+        /*
+          [column_name] => id
+          [column_default] =>
+          [is_nullable] => NO
+          [data_type] => int
+          [character_maximum_length] =>
+          [character_octet_length] =>
+          [numeric_precision] => 10
+          [numeric_scale] => 0
+          [character_set_name] =>
+          [collation_name] =>
+          [column_type] => int(11)
+          [column_key] => PRI
+          [extra] => auto_increment
+          [privileges] => select,insert,update,references
+          [column_comment] =>
+         */
+
+        return $arrReturn;
+    }
+
+    public function getColumnXsType($arrCol)
+    {
+        $arrReturn = array();
+
+        $strColumnType = $arrCol['column_type'];
+        $arrMatch = array();
+        preg_match('/^([a-z]+)(\((.*)\))?$/', $strColumnType, $arrMatch);
+        //print_r($arrMatch);
+        $numMin = 0;
+        $numMax = 0;
+        $strType = $arrMatch[1];
+        $strLength = isset($arrMatch[3]) ? $arrMatch[3] : null;
+
+        // string
+        if ($strType == 'varchar' || $strType == 'longtext') {
+            if ($strType == 'longtext') {
+                $strLength = '2147483647';
+            }
+            // @todo mediumtext
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:string'
+                ),
+                'xs:maxLength' => array(
+                    '@attributes' => array(
+                        'value' => $strLength
+                    )
+                )
+            );
+        }
+        if ($strType == 'int') {
+            if ($strLength == 11) {
+                //$numMin = '-2147483648';
+                $numMin = '0';
+                $numMax = '2147483647';
+            }
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:int'
+                ),
+                'xs:minInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMin
+                    )
+                ),
+                'xs:maxInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMax
+                    )
+                )
+            );
+        }
+        if ($strType == 'datetime') {
+
+            $boolClassic = false;
+            if ($boolClassic) {
+                $arrReturn['xs:restriction'] = array(
+                    '@attributes' => array(
+                        'base' => 'xs:dateTime'
+                    ),
+                    'xs:minInclusive' => array(
+                        '@attributes' => array(
+                            'value' => '0000-00-00T00:00:00'
+                        )
+                    ),
+                    'xs:maxInclusive' => array(
+                        '@attributes' => array(
+                            'value' => '9999-12-31T23:59:59'
+                        )
+                    ),
+                    'xs:pattern' => array(
+                        '@attributes' => array(
+                            'value' => '\p{Nd}{4}-\p{Nd}{2}-\p{Nd}{2}T\p{Nd}{2}:\p{Nd}{2}:\p{Nd}{2}'
+                        )
+                    )
+                );
+            } else {
+                // iso datetime as string
+                $arrReturn['xs:restriction'] = array(
+                    '@attributes' => array(
+                        'base' => 'xs:string'
+                    ),
+                    'xs:length' => array(
+                        '@attributes' => array(
+                            'value' => '19'
+                        )
+                    ),
+                    'xs:pattern' => array(
+                        '@attributes' => array(
+                            'value' => '\p{Nd}{4}-\p{Nd}{2}-\p{Nd}{2}\s\p{Nd}{2}:\p{Nd}{2}:\p{Nd}{2}'
+                        )
+                    )
+                );
+            }
+        }
+        if ($strType == 'tinyint') {
+            if ($strLength == '1') {
+                $numMin = '0';
+                $numMax = '1';
+            } else {
+                $this->setMinMaxSigned($strLength, $numMin, $numMax);
+            }
+
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:byte'
+                ),
+                'xs:minInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMin
+                    )
+                ),
+                'xs:maxInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMax
+                    )
+                )
+            );
+        }
+        if ($strType == 'smallint') {
+            $this->setMinMaxSigned($strLength, $numMin, $numMax);
+            $numMin = '0'; // '-32768';
+            $numMax = '32767';
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:short'
+                ),
+                'xs:minInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMin
+                    )
+                ),
+                'xs:maxInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMax
+                    )
+                )
+            );
+        }
+        if ($strType == 'bigint') {
+            //$this->setMinMaxSigned($strLength, $numMin, $numMax);
+            //$numMin = '-9223372036854775808';
+            $numMin = '0';
+            $numMax = '9223372036854775807';
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:long'
+                ),
+                'xs:minInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMin
+                    )
+                ),
+                'xs:maxInclusive' => array(
+                    '@attributes' => array(
+                        'value' => $numMax
+                    )
+                )
+            );
+        }
+        //identity_card_required
+
+
+        if ($strType == 'decimal') {
+
+            $arrMatchLen = array();
+            preg_match('/^([0-9]+)*,?([0-9]+)?$/', $strLength, $arrMatchLen);
+
+            //$this->setMinMaxSigned($strLength, $numMin, $numMax);
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:decimal'
+            ));
+            if (isset($arrMatchLen[1])) {
+                $numTotalDigits = $arrMatchLen[1];
+
+                $arrReturn['xs:restriction']['xs:totalDigits'] = array(
+                    '@attributes' => array(
+                        'value' => $numTotalDigits
+                ));
+
+                //$arrReturn['xs:restriction']['xs:minInclusive'] = array(
+                //    '@attributes' => array(
+                //        'value' => $numMin
+                //));
+            }
+            if (isset($arrMatchLen[2])) {
+                $numFractionDigits = $arrMatchLen[2];
+
+                $arrReturn['xs:restriction']['xs:fractionDigits'] = array(
+                    '@attributes' => array(
+                        'value' => $numFractionDigits
+                ));
+
+                //$arrReturn['xs:restriction']['xs:maxInclusive'] = array(
+                //    '@attributes' => array(
+                //        'value' => $numMax
+                //    )
+                //);
+            }
+        }
+
+        if (empty($arrReturn['xs:restriction'])) {
+            print_r($arrCol);
+            throw new \Exception('No type found for ' . $strType . '(' . $strLength . ')');
+        }
+
+        return $arrReturn;
+    }
+
+    public function setMinMaxSigned($numBytes, &$numMin, &$numMax)
+    {
+        $numBytes = (int) $numBytes;
+        // 8 bits (one byte) --> 2^8 (2x2x2x2x2x2x2x2) = 256 possibilities
+        $numBits = $numBytes * 8;
+        $numPossible = pow(2, $numBits);
+        $numMin = ($numPossible / 2) * -1;
+        $numMax = ($numPossible / 2) - 1;
+        return $numPossible;
+    }
+
     public function saveCsvFile($filename)
     {
         $csv = $this->getCsv();

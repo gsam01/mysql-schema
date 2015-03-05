@@ -30,4 +30,9 @@ function main()
             'mapping' => $boolMapping
         ));
     }
+    if ($strFormat == 'xsd') {
+        echo $dbs->getXsd(array(
+            'mapping' => $boolMapping
+        ));
+    }
 }

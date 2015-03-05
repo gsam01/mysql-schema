@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/lib/util.php';
+require_once __DIR__ . '/lib/Inflector.php';
 require_once __DIR__ . '/src/autoload.php';
 
 Config::init();
