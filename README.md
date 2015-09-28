@@ -2,7 +2,7 @@
 MySQL schema export
 
 
-* Export table schemas as HTML and CSV
+* Export table schemas as XSD (XML-Schema), HTML and CSV
 * Optional append mapping columns
  
 # URL Parameter
