@@ -6,7 +6,6 @@ use PDO;
 
 class DbMySqlSchema
 {
-
     protected $db;
 
     /**
@@ -186,7 +185,7 @@ class DbMySqlSchema
             //$strTableName2 = substr($strTableName, 0, strlen($strTableName) - 1);
             $strTableName2 = \Inflector::singularize($strTableName);
             $strTableComment = $table['table_comment'];
-            echo $strTableName . "\n";
+            //echo $strTableName . "\n";
 
             $arrTable = array(
                 '@attributes' => array(
@@ -312,7 +311,7 @@ class DbMySqlSchema
 
         $strColumnType = $arrCol['column_type'];
         $arrMatch = array();
-        preg_match('/^([a-z]+)(\((.*)\))?$/', $strColumnType, $arrMatch);
+        preg_match('/^([a-z]+)(\((.*)\))?.*$/', $strColumnType, $arrMatch);
         //print_r($arrMatch);
         $numMin = 0;
         $numMax = 0;
@@ -354,6 +353,25 @@ class DbMySqlSchema
                 'xs:maxInclusive' => array(
                     '@attributes' => array(
                         'value' => $numMax
+                    )
+                )
+            );
+        }
+
+        if ($strType == 'timestamp') {
+            // iso datetime as string
+            $arrReturn['xs:restriction'] = array(
+                '@attributes' => array(
+                    'base' => 'xs:string'
+                ),
+                'xs:length' => array(
+                    '@attributes' => array(
+                        'value' => '19'
+                    )
+                ),
+                'xs:pattern' => array(
+                    '@attributes' => array(
+                        'value' => '\p{Nd}{4}-\p{Nd}{2}-\p{Nd}{2}\s\p{Nd}{2}:\p{Nd}{2}:\p{Nd}{2}'
                     )
                 )
             );
@@ -508,8 +526,26 @@ class DbMySqlSchema
             }
         }
 
+        if ($strType == 'enum') {
+            //print_r($arrMatch);
+            $arrReturn['xs:restriction'] = array(
+                'xs:string' => array(
+                    '@attributes' => array(
+                        'base' => "xs:string"
+            )));
+
+            $values = explode(',', $arrMatch[3]);
+            foreach ($values as $index => $value) {
+                $arrReturn['xs:restriction']['xs:enumeration'][$index] = array(
+                    '@attributes' => array(
+                            'value' => str_replace("'", '', $value)
+                    )
+                );
+            }
+        }
+
         if (empty($arrReturn['xs:restriction'])) {
-            print_r($arrCol);
+            //print_r($arrMatch);
             throw new \Exception('No type found for ' . $strType . '(' . $strLength . ')');
         }
 
