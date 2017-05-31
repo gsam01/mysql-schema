@@ -820,28 +820,80 @@ class DbMySqlSchema
                 color:             #000;
                 background-color:  #fff;
             }
+            
+            body{  
+                width:95%;
+                margin:auto;
+            }
 
             img {
                 border: 0;
             }
 
-            table, th, td {
-                border: 1px solid #ccc;
+            h1{
+                margin-top:30px;
+                display:block;
+                background-color: #c6c6c6;
+                font-weight: bolder;
+                font-size: 1.5em;
+                padding: 5px 5px 5px 20px;
+                text-transform: capitalize;
             }
 
             table {
-                border-collapse:   collapse;
-                border-spacing:    0;
+                font-family: verdana,arial,sans-serif;
+                font-size:11px;
+                color:#333333;
+                border-width: 1px;
+                border-color: #c6c6c6;
+                border-collapse: collapse;
+                width: 90%;
+                margin:auto !important;
+            }
+            table th {
+                border-width: 1px;
+                padding: 8px;
+                border-style: solid;
+                border-color: #c6c6c6;
             }
 
-            th, td {
-                padding:           0.2em;
+            table td {
+                border-width: 1px;
+                padding: 8px;
+                border-style: solid;
+                border-color: #c6c6c6;
             }
 
-            th {
-                font-weight:       bold;
-                background-color:  #e5e5e5;
+            td:first-child {
+                width: 170px  !important;
             }
+
+
+            td:nth-child(2) {
+                width: 95px !important;
+
+            }
+            
+            td:nth-child(3) {
+                width: 30px !important;
+
+            }
+            
+            td:nth-child(4) {
+                width: 30px !important;
+
+            }
+            
+            td:nth-child(5) {
+                width: 103px !important;
+
+            }
+            
+            .oddrowcolor{
+                background-color:#d4e3e5;
+            }
+            .evenrowcolor{
+                background-color:#c3dde0;
 
             th.vtop, td.vtop {
                 vertical-align: top;
